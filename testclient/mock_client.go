@@ -151,6 +151,10 @@ func (this *MockClient) OnCreatePlayerRes(res *pb.CreatePlayerRes) {
 	}
 }
 
+func (this *MockClient) OnErrorRes(res *pb.ErrorRes) {
+	logger.Debug("OnErrorRes cmd:%v id:%v str:%v", res.Command, res.ResultId, res.ResultStr)
+}
+
 func (this *MockClient) OnCoinRes(res *pb.CoinRes) {
 	logger.Debug("OnCoinRes:%v", res)
 }

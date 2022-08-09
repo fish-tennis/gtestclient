@@ -22,6 +22,6 @@ test client for [gserver](https://github.com/fish-tennis/gserver)
 
 加物品 itemCfgId itemNum
 
-完成任务 finishquest 
+完成任务 finishquest questId
 
 模拟一个战斗事件 fight 是否是Pvp 是否获胜
