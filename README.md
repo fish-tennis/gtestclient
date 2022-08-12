@@ -20,8 +20,12 @@ test client for [gserver](https://github.com/fish-tennis/gserver)
 ## 测试命令
 加经验值 addexp 数值
 
-加物品 itemCfgId itemNum
+加物品 itemCfgId 物品数量
 
-完成任务 finishquest questId
+完成任务 finishquest 任务配置id
 
-模拟一个战斗事件 fight 是否是Pvp 是否获胜
+模拟一个战斗事件 fight 是否是Pvp(true|false) 是否获胜(true|false)
+
+创建一个公会 guild create
+
+申请加入公会 guild join 公会id

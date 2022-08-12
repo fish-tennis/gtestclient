@@ -5,6 +5,8 @@ import (
 	. "github.com/fish-tennis/gnet"
 	"github.com/fish-tennis/gtestclient/logger"
 	"github.com/fish-tennis/gtestclient/pb"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -165,25 +167,34 @@ func (this *MockClient) OnGuildCreateRes(res *pb.GuildCreateRes) {
 
 func (this *MockClient) OnGuildListRes(res *pb.GuildListRes) {
 	logger.Debug("OnGuildListRes:%v", res)
-	if len(res.GuildInfos) > 0 {
-		if this.playerEntryGameRes.GuildData.GuildId == 0 {
-			// 申请加入公会
-			this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinReq), &pb.GuildJoinReq{
-				Id: res.GuildInfos[0].Id,
-			})
-			logger.Debug("GuildJoinReq:%v", res.GuildInfos[0].Id)
-		}
-	} else {
-		// 没有公会 就创建一个
-		this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildCreateReq), &pb.GuildCreateReq{
-			Name: fmt.Sprintf("%v's guild", this.accountName),
-			Intro: fmt.Sprintf("create by %v", this.accountName),
-		})
-	}
+	//if len(res.GuildInfos) > 0 {
+	//	if this.playerEntryGameRes.GuildData.GuildId == 0 {
+	//		// 申请加入公会
+	//		this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinReq), &pb.GuildJoinReq{
+	//			Id: res.GuildInfos[0].Id,
+	//		})
+	//		logger.Debug("GuildJoinReq:%v", res.GuildInfos[0].Id)
+	//	}
+	//} else {
+	//	// 没有公会 就创建一个
+	//	this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildCreateReq), &pb.GuildCreateReq{
+	//		Name: fmt.Sprintf("%v's guild", this.accountName),
+	//		Intro: fmt.Sprintf("create by %v", this.accountName),
+	//	})
+	//}
 }
 
 func (this *MockClient) OnGuildJoinRes(res *pb.GuildJoinRes) {
 	logger.Debug("OnGuildJoinRes:%v", res)
+}
+
+func (this *MockClient) OnGuildJoinReqTip(res *pb.GuildJoinReqTip) {
+	logger.Debug("OnGuildJoinReqTip:%v", res)
+	// 同意入会请求
+	this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinAgreeReq), &pb.GuildJoinAgreeReq{
+		JoinPlayerId: res.PlayerId,
+		IsAgree: true,
+	})
 }
 
 func (this *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
@@ -197,7 +208,37 @@ func (this *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
 	}
 }
 
+// 测试命令
 func (this *MockClient) OnInputCmd(cmd string) {
+	// 本地测试命令
+	cmdStrs := strings.Split(cmd, " ")
+	if len(cmdStrs) == 0 {
+		return
+	}
+	cmdKey := strings.ToLower(cmdStrs[0])
+	cmdArgs := cmdStrs[1:]
+	if cmdKey == "guild" && len(cmdArgs) >= 1 {
+		if cmdArgs[0] == "create" {
+			// 创建公会
+			this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildCreateReq), &pb.GuildCreateReq{
+				Name: fmt.Sprintf("%v's guild", this.accountName),
+				Intro: fmt.Sprintf("create by %v", this.accountName),
+			})
+			return
+		} else if cmdArgs[0] == "join" {
+			if len(cmdArgs) != 2 {
+				logger.Error("usage: guild join guildId")
+				return
+			}
+			guildId,_ := strconv.ParseInt(cmdArgs[1], 10, 64)
+			// 申请加入公会
+			this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinReq), &pb.GuildJoinReq{
+				Id: guildId,
+			})
+			return
+		}
+	}
+	// 发给服务器的测试命令
 	this.conn.Send(PacketCommand(pb.CmdInner_Cmd_TestCmd), &pb.TestCmd{
 		Cmd: cmd,
 	})
