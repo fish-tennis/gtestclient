@@ -4,7 +4,9 @@ test client for [gserver](https://github.com/fish-tennis/gserver)
 测试客户端,可以用来测试逻辑或者模拟机器人来进行压力测试
 
 ## 命令行参数
--server: 服务器地址
+-gate: 是否使用网关模式
+
+-server: 服务器地址(gate为true时,填写网关服务器地址,gate为false时,填写登录服务器地址)
 
 -num: 客户端数量
 
