@@ -26,20 +26,22 @@ func main() {
 	}()
 
 	var (
-		isDaemon = false
-		serverAddr string
+		isDaemon                = false
+		useGate                 = true
+		serverAddr              string
 		mockClientAccountPrefix string
-		mockClientNum int
-		mockClientBeginId int
+		mockClientNum           int
+		mockClientBeginId       int
 	)
-	flag.StringVar(&serverAddr, "server", "127.0.0.1:10002", "testClient's ip:port")
+	flag.StringVar(&serverAddr, "server", "127.0.0.1:10001", "server's ip:port")
 	flag.IntVar(&mockClientNum, "num", 1, "num of mock client")
 	flag.IntVar(&mockClientBeginId, "begin", 1, "begin id of mock client")
 	flag.StringVar(&mockClientAccountPrefix, "prefix", "mock", "prefix of mock client's accountName")
+	flag.BoolVar(&useGate, "gate", true, "use gate mode")
 	flag.BoolVar(&isDaemon, "d", false, "daemon mode")
 	flag.Parse()
-	logger.Info("server:%v num:%v prefix:%v beginId:%v isDaemon:%v", serverAddr, mockClientNum,
-		mockClientAccountPrefix, mockClientBeginId, isDaemon)
+	logger.Info("server:%v useGate:%v num:%v prefix:%v beginId:%v isDaemon:%v", serverAddr, useGate,
+		mockClientNum, mockClientAccountPrefix, mockClientBeginId, isDaemon)
 
 	if isDaemon {
 		daemon()
@@ -53,9 +55,9 @@ func main() {
 	testClient := new(testclient.TestClient)
 
 	// context实现优雅的协程关闭通知
-	ctx,cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	// 初始化
-	if !testClient.Init(ctx, serverAddr, mockClientAccountPrefix, mockClientNum, mockClientBeginId) {
+	if !testClient.Init(ctx, useGate, serverAddr, mockClientAccountPrefix, mockClientNum, mockClientBeginId) {
 		panic("testClient init error")
 	}
 	// 运行

@@ -23,14 +23,14 @@ func NewMockClientHandler(protoCodec *ProtoCodec) *MockClientHandler {
 		DefaultConnectionHandler: *NewDefaultConnectionHandler(protoCodec),
 		methods:                  make(map[PacketCommand]reflect.Method),
 	}
-	handler.RegisterHeartBeat(PacketCommand(pb.CmdInner_Cmd_HeartBeatReq), func() proto.Message {
-		return &pb.HeartBeatReq{
+	handler.RegisterHeartBeat(func() Packet {
+		return NewProtoPacket(PacketCommand(pb.CmdInner_Cmd_HeartBeatReq), &pb.HeartBeatReq{
 			Timestamp: uint64(time.Now().UnixNano()/int64(time.Millisecond)),
-		}
+		})
 	})
-	handler.Register(PacketCommand(pb.CmdInner_Cmd_HeartBeatRes), func(connection Connection, packet *ProtoPacket) {
+	handler.Register(PacketCommand(pb.CmdInner_Cmd_HeartBeatRes), func(connection Connection, packet Packet) {
 	} , new(pb.HeartBeatRes))
-	handler.SetUnRegisterHandler(func(connection Connection, packet *ProtoPacket) {
+	handler.SetUnRegisterHandler(func(connection Connection, packet Packet) {
 		logger.Debug("un register %v", string(packet.Message().ProtoReflect().Descriptor().Name()))
 	})
 	return handler

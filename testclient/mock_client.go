@@ -70,15 +70,18 @@ func (this *MockClient) OnLoginRes(res *pb.LoginRes) {
 		})
 	} else if res.Error == "" {
 		this.loginRes = res
-		this.conn.SetTag("")
-		this.conn.Close()
-		// 账号登录成功后,连接游戏服
-		this.conn = GetNetMgr().NewConnector(_testClient.ctx, res.GetGameServer().GetClientListenAddr(), this.getConnectionConfig(),
-			_testClient.clientCodec, _testClient.clientHandler, this.accountName)
-		if this.conn == nil {
-			logger.Error("%v connect game failed", this.accountName)
-			_testClient.removeMockClient(this.accountName)
-			return
+		if !_testClient.useGate {
+			// 客户端直连模式,需要断开和LoginServer的连接,并连接分配的GameServer
+			this.conn.SetTag("")
+			this.conn.Close()
+			// 账号登录成功后,连接游戏服
+			this.conn = GetNetMgr().NewConnector(_testClient.ctx, res.GetGameServer().GetClientListenAddr(), this.getConnectionConfig(),
+				_testClient.clientCodec, _testClient.clientHandler, this.accountName)
+			if this.conn == nil {
+				logger.Error("%v connect game failed", this.accountName)
+				_testClient.removeMockClient(this.accountName)
+				return
+			}
 		}
 		this.conn.Send(PacketCommand(pb.CmdLogin_Cmd_PlayerEntryGameReq), &pb.PlayerEntryGameReq{
 			AccountId: this.loginRes.GetAccountId(),

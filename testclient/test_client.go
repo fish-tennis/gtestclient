@@ -21,6 +21,7 @@ type TestClient struct {
 	clientCodec   *ProtoCodec
 	clientHandler *MockClientHandler
 
+	useGate                 bool // 是否使用网关模式
 	serverAddr              string
 	mockClientAccountPrefix string
 	mockClientNum           int
@@ -30,10 +31,11 @@ type TestClient struct {
 	mockClientsMutex sync.RWMutex
 }
 
-func (this *TestClient) Init(ctx context.Context, serverAddr string,
+func (this *TestClient) Init(ctx context.Context, useGate bool, serverAddr string,
 	mockClientAccountPrefix string, mockClientNum int, mockClientBeginId int) bool {
 	_testClient = this
 	this.ctx = ctx
+	this.useGate = useGate
 	this.serverAddr = serverAddr
 	this.mockClientAccountPrefix = mockClientAccountPrefix
 	this.mockClientNum = mockClientNum
