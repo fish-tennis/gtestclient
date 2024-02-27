@@ -28,6 +28,7 @@ func main() {
 	var (
 		isDaemon                = false
 		useGate                 = true
+		useWebSocket            = true
 		serverAddr              string
 		mockClientAccountPrefix string
 		mockClientNum           int
@@ -38,10 +39,14 @@ func main() {
 	flag.IntVar(&mockClientBeginId, "begin", 1, "begin id of mock client")
 	flag.StringVar(&mockClientAccountPrefix, "prefix", "mock", "prefix of mock client's accountName")
 	flag.BoolVar(&useGate, "gate", true, "use gate mode")
+	flag.BoolVar(&useWebSocket, "ws", false, "use WebSocket mode")
 	flag.BoolVar(&isDaemon, "d", false, "daemon mode")
 	flag.Parse()
-	logger.Info("server:%v useGate:%v num:%v prefix:%v beginId:%v isDaemon:%v", serverAddr, useGate,
-		mockClientNum, mockClientAccountPrefix, mockClientBeginId, isDaemon)
+	logger.Info("server:%v useGate:%v useWebSocket:%v num:%v prefix:%v beginId:%v isDaemon:%v", serverAddr,
+		useGate, useWebSocket, mockClientNum, mockClientAccountPrefix, mockClientBeginId, isDaemon)
+	if useWebSocket && !useGate {
+		panic("WebSocket is only support by gate mode for now")
+	}
 
 	if isDaemon {
 		daemon()
@@ -57,7 +62,7 @@ func main() {
 	// context实现优雅的协程关闭通知
 	ctx, cancel := context.WithCancel(context.Background())
 	// 初始化
-	if !testClient.Init(ctx, useGate, serverAddr, mockClientAccountPrefix, mockClientNum, mockClientBeginId) {
+	if !testClient.Init(ctx, useGate, useWebSocket, serverAddr, mockClientAccountPrefix, mockClientNum, mockClientBeginId) {
 		panic("testClient init error")
 	}
 	// 运行

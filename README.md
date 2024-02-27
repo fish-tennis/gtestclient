@@ -6,6 +6,8 @@ test client for [gserver](https://github.com/fish-tennis/gserver)
 ## 命令行参数
 -gate: 是否使用网关模式
 
+-ws: 是否使用WebSocket,使用WebSocket时,必须同时使用网关模式
+
 -server: 服务器地址(gate为true时,填写网关服务器地址,gate为false时,填写登录服务器地址)
 
 -num: 客户端数量

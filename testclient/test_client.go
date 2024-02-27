@@ -18,10 +18,11 @@ type TestClient struct {
 	ctx context.Context
 	wg  sync.WaitGroup
 
-	clientCodec   *ProtoCodec
+	clientCodec   Codec
 	clientHandler *MockClientHandler
 
 	useGate                 bool // 是否使用网关模式
+	useWebSocket            bool // 是否使用WebSocket
 	serverAddr              string
 	mockClientAccountPrefix string
 	mockClientNum           int
@@ -31,18 +32,23 @@ type TestClient struct {
 	mockClientsMutex sync.RWMutex
 }
 
-func (this *TestClient) Init(ctx context.Context, useGate bool, serverAddr string,
+func (this *TestClient) Init(ctx context.Context, useGate bool, useWebsocket bool, serverAddr string,
 	mockClientAccountPrefix string, mockClientNum int, mockClientBeginId int) bool {
 	_testClient = this
 	this.ctx = ctx
 	this.useGate = useGate
+	this.useWebSocket = useWebsocket
 	this.serverAddr = serverAddr
 	this.mockClientAccountPrefix = mockClientAccountPrefix
 	this.mockClientNum = mockClientNum
 	this.mockClientBeginId = mockClientBeginId
 	this.mockClients = make(map[string]*MockClient)
 
-	this.clientCodec = NewProtoCodec(nil)
+	if !this.useWebSocket {
+		this.clientCodec = NewProtoCodec(nil)
+	} else {
+		this.clientCodec = NewSimpleProtoCodec()
+	}
 	this.clientHandler = NewMockClientHandler(this.clientCodec)
 	this.clientHandler.autoRegister()
 	this.clientHandler.SetOnDisconnectedFunc(func(connection Connection) {
