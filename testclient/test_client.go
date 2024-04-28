@@ -77,8 +77,8 @@ func (this *TestClient) OnUpdate(ctx context.Context, updateCount int64) {
 }
 
 func (this *TestClient) Exit() {
-	this.mockClientsMutex.RLock()
-	defer this.mockClientsMutex.RUnlock()
+	this.mockClientsMutex.Lock()
+	defer this.mockClientsMutex.Unlock()
 	for _, mockClient := range this.mockClients {
 		if mockClient.conn != nil {
 			mockClient.conn.Close()
