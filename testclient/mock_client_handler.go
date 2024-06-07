@@ -25,7 +25,7 @@ func NewMockClientHandler(protoCodec Codec) *MockClientHandler {
 	}
 	handler.RegisterHeartBeat(func() Packet {
 		return NewProtoPacket(PacketCommand(pb.CmdInner_Cmd_HeartBeatReq), &pb.HeartBeatReq{
-			Timestamp: uint64(time.Now().UnixNano() / int64(time.Millisecond)),
+			Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
 		})
 	})
 	handler.Register(PacketCommand(pb.CmdInner_Cmd_HeartBeatRes), func(connection Connection, packet Packet) {
