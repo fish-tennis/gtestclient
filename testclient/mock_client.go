@@ -213,7 +213,7 @@ func (this *MockClient) OnGuildJoinReqTip(res *pb.GuildJoinReqTip) {
 }
 
 func (this *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
-	logger.Debug("OnRequestGuildDataRes:%v", res)
+	logger.Debug("OnGuildDataViewRes:%v", res)
 	for _, v := range res.GuildData.JoinRequests {
 		// 同意入会请求
 		this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinAgreeReq), &pb.GuildJoinAgreeReq{
@@ -221,6 +221,14 @@ func (this *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
 			IsAgree:      true,
 		})
 	}
+}
+
+func (this *MockClient) OnGuildJoinAgreeRes(res *pb.GuildJoinAgreeRes) {
+	logger.Debug("OnGuildJoinAgreeRes:%v", res)
+}
+
+func (this *MockClient) OnGuildJoinReqOpResult(res *pb.GuildJoinReqOpResult) {
+	logger.Debug("OnGuildJoinReqOpResult:%v", res)
 }
 
 // 测试命令
