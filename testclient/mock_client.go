@@ -176,6 +176,10 @@ func (this *MockClient) OnCoinRes(res *pb.CoinRes) {
 	logger.Debug("OnCoinRes:%v", res)
 }
 
+func (this *MockClient) OnFinishQuestRes(res *pb.FinishQuestRes) {
+	logger.Debug("OnFinishQuestRes:%v", res)
+}
+
 func (this *MockClient) OnGuildCreateRes(res *pb.GuildCreateRes) {
 	logger.Debug("OnGuildCreateRes:%v", res)
 }
@@ -232,6 +236,7 @@ func (this *MockClient) OnGuildJoinReqOpResult(res *pb.GuildJoinReqOpResult) {
 }
 
 // 测试命令
+// 支持的命令,详见https://github.com/fish-tennis/gserver/gameserver/test_cmd.go
 func (this *MockClient) OnInputCmd(cmd string) {
 	// 本地测试命令
 	cmdStrs := strings.Split(cmd, " ")
