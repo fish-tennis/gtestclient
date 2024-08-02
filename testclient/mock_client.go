@@ -5,6 +5,7 @@ import (
 	. "github.com/fish-tennis/gnet"
 	"github.com/fish-tennis/gtestclient/logger"
 	"github.com/fish-tennis/gtestclient/pb"
+	"google.golang.org/protobuf/proto"
 	"strconv"
 	"strings"
 	"time"
@@ -66,11 +67,20 @@ func (this *MockClient) start() {
 			_testClient.removeMockClient(this.accountName)
 			return
 		}
-		this.conn.Send(PacketCommand(pb.CmdLogin_Cmd_LoginReq), &pb.LoginReq{
+		this.Send(&pb.LoginReq{
 			AccountName: this.accountName,
 			Password:    this.accountName,
 		})
 	}()
+}
+
+func (this *MockClient) Send(message proto.Message, opts ...SendOption) bool {
+	clientCmd := GetClientCommandByProto(message)
+	if clientCmd <= 0 {
+		logger.Error("clientCmdNotFound messageName:%v", proto.MessageName(message))
+		return false
+	}
+	return this.conn.Send(PacketCommand(clientCmd), message)
 }
 
 func (this *MockClient) OnLoginRes(res *pb.LoginRes) {
@@ -78,7 +88,7 @@ func (this *MockClient) OnLoginRes(res *pb.LoginRes) {
 	if res.Error == "NotReg" {
 		// 自动注册账号
 		// 这里是单纯的测试,账号和密码直接使用明文,实际项目需要做md5之类的处理
-		this.conn.Send(PacketCommand(pb.CmdLogin_Cmd_AccountReg), &pb.AccountReg{
+		this.Send(&pb.AccountReg{
 			AccountName: this.accountName,
 			Password:    this.accountName,
 		})
@@ -96,7 +106,7 @@ func (this *MockClient) OnLoginRes(res *pb.LoginRes) {
 				return
 			}
 		}
-		this.conn.Send(PacketCommand(pb.CmdLogin_Cmd_PlayerEntryGameReq), &pb.PlayerEntryGameReq{
+		this.Send(&pb.PlayerEntryGameReq{
 			AccountId:    this.loginRes.GetAccountId(),
 			LoginSession: this.loginRes.GetLoginSession(),
 			RegionId:     1,
@@ -109,7 +119,7 @@ func (this *MockClient) OnLoginRes(res *pb.LoginRes) {
 func (this *MockClient) OnAccountRes(res *pb.AccountRes) {
 	logger.Debug("onAccountRes:%v", res)
 	if res.Error == "" {
-		this.conn.Send(PacketCommand(pb.CmdLogin_Cmd_LoginReq), &pb.LoginReq{
+		this.Send(&pb.LoginReq{
 			AccountName: this.accountName,
 			Password:    this.accountName,
 		})
@@ -121,21 +131,21 @@ func (this *MockClient) OnPlayerEntryGameRes(res *pb.PlayerEntryGameRes) {
 	if res.Error == "" {
 		this.playerEntryGameRes = res
 		// 玩家登录游戏服成功,模拟一个交互消息
-		this.conn.Send(PacketCommand(pb.CmdMoney_Cmd_CoinReq), &pb.CoinReq{
+		this.Send(&pb.CoinReq{
 			AddCoin: 1,
 		})
-		this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildListReq), &pb.GuildListReq{
+		this.Send(&pb.GuildListReq{
 			PageIndex: 0,
 		})
 		if res.GuildData.GuildId > 0 {
 			// 已有公会 获取公会数据
-			this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildDataViewReq), &pb.GuildDataViewReq{})
+			this.Send(&pb.GuildDataViewReq{})
 		}
 		return
 	}
 	// 还没角色,则创建新角色
 	if res.Error == "NoPlayer" {
-		this.conn.Send(PacketCommand(pb.CmdLogin_Cmd_CreatePlayerReq), &pb.CreatePlayerReq{
+		this.Send(&pb.CreatePlayerReq{
 			AccountId:    this.loginRes.GetAccountId(),
 			LoginSession: this.loginRes.GetLoginSession(),
 			RegionId:     1,
@@ -148,7 +158,7 @@ func (this *MockClient) OnPlayerEntryGameRes(res *pb.PlayerEntryGameRes) {
 	if res.Error == "TryLater" {
 		// 延迟重试
 		time.AfterFunc(time.Second, func() {
-			this.conn.Send(PacketCommand(pb.CmdLogin_Cmd_PlayerEntryGameReq), &pb.PlayerEntryGameReq{
+			this.Send(&pb.PlayerEntryGameReq{
 				AccountId:    this.loginRes.GetAccountId(),
 				LoginSession: this.loginRes.GetLoginSession(),
 				RegionId:     1,
@@ -160,7 +170,7 @@ func (this *MockClient) OnPlayerEntryGameRes(res *pb.PlayerEntryGameRes) {
 func (this *MockClient) OnCreatePlayerRes(res *pb.CreatePlayerRes) {
 	logger.Debug("onCreatePlayerRes:%v", res)
 	if res.Error == "" {
-		this.conn.Send(PacketCommand(pb.CmdLogin_Cmd_PlayerEntryGameReq), &pb.PlayerEntryGameReq{
+		this.Send(&pb.PlayerEntryGameReq{
 			AccountId:    this.loginRes.GetAccountId(),
 			LoginSession: this.loginRes.GetLoginSession(),
 			RegionId:     1,
@@ -210,7 +220,7 @@ func (this *MockClient) OnGuildJoinRes(res *pb.GuildJoinRes) {
 func (this *MockClient) OnGuildJoinReqTip(res *pb.GuildJoinReqTip) {
 	logger.Debug("OnGuildJoinReqTip:%v", res)
 	// 同意入会请求
-	this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinAgreeReq), &pb.GuildJoinAgreeReq{
+	this.Send(&pb.GuildJoinAgreeReq{
 		JoinPlayerId: res.PlayerId,
 		IsAgree:      true,
 	})
@@ -220,7 +230,7 @@ func (this *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
 	logger.Debug("OnGuildDataViewRes:%v", res)
 	for _, v := range res.GuildData.JoinRequests {
 		// 同意入会请求
-		this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinAgreeReq), &pb.GuildJoinAgreeReq{
+		this.Send(&pb.GuildJoinAgreeReq{
 			JoinPlayerId: v.PlayerId,
 			IsAgree:      true,
 		})
@@ -248,7 +258,7 @@ func (this *MockClient) OnInputCmd(cmd string) {
 	if cmdKey == "guild" && len(cmdArgs) >= 1 {
 		if cmdArgs[0] == "create" {
 			// 创建公会
-			this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildCreateReq), &pb.GuildCreateReq{
+			this.Send(&pb.GuildCreateReq{
 				Name:  fmt.Sprintf("%v's guild", this.accountName),
 				Intro: fmt.Sprintf("create by %v", this.accountName),
 			})
@@ -260,7 +270,7 @@ func (this *MockClient) OnInputCmd(cmd string) {
 			}
 			guildId, _ := strconv.ParseInt(cmdArgs[1], 10, 64)
 			// 申请加入公会
-			this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinReq), &pb.GuildJoinReq{
+			this.Send(&pb.GuildJoinReq{
 				Id: guildId,
 			})
 			return
