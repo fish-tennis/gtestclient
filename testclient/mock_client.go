@@ -71,6 +71,7 @@ func (this *MockClient) start() {
 			AccountName: this.accountName,
 			Password:    this.accountName,
 		})
+		logger.Debug("LoginReq %v", this.accountName)
 	}()
 }
 
@@ -80,7 +81,13 @@ func (this *MockClient) Send(message proto.Message, opts ...SendOption) bool {
 		logger.Error("clientCmdNotFound messageName:%v", proto.MessageName(message))
 		return false
 	}
-	return this.conn.Send(PacketCommand(clientCmd), message)
+	if this.conn.Send(PacketCommand(clientCmd), message) {
+		logger.Debug("Send %v messageName:%v", clientCmd, proto.MessageName(message))
+		return true
+	} else {
+		logger.Error("SendError messageName:%v", proto.MessageName(message))
+		return false
+	}
 }
 
 func (this *MockClient) OnLoginRes(res *pb.LoginRes) {
@@ -277,7 +284,7 @@ func (this *MockClient) OnInputCmd(cmd string) {
 		}
 	}
 	// 发给服务器的测试命令
-	this.conn.Send(PacketCommand(pb.CmdInner_Cmd_TestCmd), &pb.TestCmd{
+	this.Send(&pb.TestCmd{
 		Cmd: cmd,
 	})
 }
