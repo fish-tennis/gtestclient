@@ -189,6 +189,12 @@ func (this *MockClient) OnErrorRes(res *pb.ErrorRes) {
 	logger.Debug("OnErrorRes cmd:%v id:%v str:%v", res.Command, res.ResultId, res.ResultStr)
 }
 
+func (this *MockClient) OnGateRouteClientPacketError(res *pb.GateRouteClientPacketError) {
+	a
+	logger.Debug("OnGateRouteClientPacketError id:%v str:%v", res.ResultId, res.ResultStr)
+	this.conn.Close()
+}
+
 func (this *MockClient) OnCoinRes(res *pb.CoinRes) {
 	logger.Debug("OnCoinRes:%v", res)
 }
