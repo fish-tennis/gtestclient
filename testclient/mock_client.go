@@ -190,7 +190,6 @@ func (this *MockClient) OnErrorRes(res *pb.ErrorRes) {
 }
 
 func (this *MockClient) OnGateRouteClientPacketError(res *pb.GateRouteClientPacketError) {
-	a
 	logger.Debug("OnGateRouteClientPacketError id:%v str:%v", res.ResultId, res.ResultStr)
 	this.conn.Close()
 }
