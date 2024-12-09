@@ -32,26 +32,26 @@ type TestClient struct {
 	mockClientsMutex sync.RWMutex
 }
 
-func (this *TestClient) Init(ctx context.Context, useGate bool, useWebsocket bool, serverAddr string,
+func (t *TestClient) Init(ctx context.Context, useGate bool, useWebsocket bool, serverAddr string,
 	mockClientAccountPrefix string, mockClientNum int, mockClientBeginId int) bool {
-	_testClient = this
-	this.ctx = ctx
-	this.useGate = useGate
-	this.useWebSocket = useWebsocket
-	this.serverAddr = serverAddr
-	this.mockClientAccountPrefix = mockClientAccountPrefix
-	this.mockClientNum = mockClientNum
-	this.mockClientBeginId = mockClientBeginId
-	this.mockClients = make(map[string]*MockClient)
+	_testClient = t
+	t.ctx = ctx
+	t.useGate = useGate
+	t.useWebSocket = useWebsocket
+	t.serverAddr = serverAddr
+	t.mockClientAccountPrefix = mockClientAccountPrefix
+	t.mockClientNum = mockClientNum
+	t.mockClientBeginId = mockClientBeginId
+	t.mockClients = make(map[string]*MockClient)
 
-	if !this.useWebSocket {
-		this.clientCodec = NewProtoCodec(nil)
+	if !t.useWebSocket {
+		t.clientCodec = NewProtoCodec(nil)
 	} else {
-		this.clientCodec = NewSimpleProtoCodec()
+		t.clientCodec = NewSimpleProtoCodec()
 	}
-	this.clientHandler = NewMockClientHandler(this.clientCodec)
-	this.clientHandler.autoRegister()
-	this.clientHandler.SetOnDisconnectedFunc(func(connection Connection) {
+	t.clientHandler = NewMockClientHandler(t.clientCodec)
+	t.clientHandler.autoRegister()
+	t.clientHandler.SetOnDisconnectedFunc(func(connection Connection) {
 		accountName := connection.GetTag().(string)
 		mockClient := _testClient.getMockClientByAccountName(accountName)
 		if mockClient == nil {
@@ -61,53 +61,53 @@ func (this *TestClient) Init(ctx context.Context, useGate bool, useWebsocket boo
 		logger.Debug("client disconnect %v", accountName)
 	})
 
-	for i := 0; i < this.mockClientNum; i++ {
-		accountName := fmt.Sprintf("%v%v", this.mockClientAccountPrefix, this.mockClientBeginId+i)
+	for i := 0; i < t.mockClientNum; i++ {
+		accountName := fmt.Sprintf("%v%v", t.mockClientAccountPrefix, t.mockClientBeginId+i)
 		client := newMockClient(accountName)
-		this.addMockClient(client)
+		t.addMockClient(client)
 		client.start()
 	}
 	return true
 }
 
-func (this *TestClient) Run(ctx context.Context) {
+func (t *TestClient) Run(ctx context.Context) {
 }
 
-func (this *TestClient) OnUpdate(ctx context.Context, updateCount int64) {
+func (t *TestClient) OnUpdate(ctx context.Context, updateCount int64) {
 }
 
-func (this *TestClient) Exit() {
-	this.mockClientsMutex.Lock()
-	defer this.mockClientsMutex.Unlock()
-	for _, mockClient := range this.mockClients {
+func (t *TestClient) Exit() {
+	t.mockClientsMutex.Lock()
+	defer t.mockClientsMutex.Unlock()
+	for _, mockClient := range t.mockClients {
 		if mockClient.conn != nil {
 			mockClient.conn.Close()
 		}
 	}
 }
 
-func (this *TestClient) getMockClientByAccountName(accountName string) *MockClient {
-	this.mockClientsMutex.RLock()
-	defer this.mockClientsMutex.RUnlock()
-	return this.mockClients[accountName]
+func (t *TestClient) getMockClientByAccountName(accountName string) *MockClient {
+	t.mockClientsMutex.RLock()
+	defer t.mockClientsMutex.RUnlock()
+	return t.mockClients[accountName]
 }
 
-func (this *TestClient) addMockClient(client *MockClient) {
-	this.mockClientsMutex.Lock()
-	defer this.mockClientsMutex.Unlock()
-	this.mockClients[client.accountName] = client
+func (t *TestClient) addMockClient(client *MockClient) {
+	t.mockClientsMutex.Lock()
+	defer t.mockClientsMutex.Unlock()
+	t.mockClients[client.accountName] = client
 }
 
-func (this *TestClient) removeMockClient(accountName string) {
-	this.mockClientsMutex.Lock()
-	defer this.mockClientsMutex.Unlock()
-	delete(this.mockClients, accountName)
+func (t *TestClient) removeMockClient(accountName string) {
+	t.mockClientsMutex.Lock()
+	defer t.mockClientsMutex.Unlock()
+	delete(t.mockClients, accountName)
 }
 
-func (this *TestClient) OnInputCmd(cmd string) {
-	this.mockClientsMutex.RLock()
-	defer this.mockClientsMutex.RUnlock()
-	for _, mockClient := range this.mockClients {
+func (t *TestClient) OnInputCmd(cmd string) {
+	t.mockClientsMutex.RLock()
+	defer t.mockClientsMutex.RUnlock()
+	for _, mockClient := range t.mockClients {
 		mockClient.OnInputCmd(cmd)
 	}
 }

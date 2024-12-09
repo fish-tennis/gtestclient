@@ -36,7 +36,7 @@ func NewMockClientHandler(protoCodec Codec) *MockClientHandler {
 	return handler
 }
 
-func (this *MockClientHandler) OnRecvPacket(connection Connection, packet Packet) {
+func (h *MockClientHandler) OnRecvPacket(connection Connection, packet Packet) {
 	if connection.GetTag() != nil {
 		accountName := connection.GetTag().(string)
 		mockClient := _testClient.getMockClientByAccountName(accountName)
@@ -44,31 +44,56 @@ func (this *MockClientHandler) OnRecvPacket(connection Connection, packet Packet
 			return
 		}
 		if protoPacket, ok := packet.(*ProtoPacket); ok {
-			handlerMethod, ok2 := this.methods[protoPacket.Command()]
+			handlerMethod, ok2 := h.methods[protoPacket.Command()]
 			if ok2 {
-				handlerMethod.Func.Call([]reflect.Value{reflect.ValueOf(mockClient), reflect.ValueOf(protoPacket.Message())})
+				if handlerMethod.Type.NumIn() == 2 {
+					// func (h *MockClient) OnMessageName(res *pb.MessageName)
+					handlerMethod.Func.Call([]reflect.Value{
+						reflect.ValueOf(mockClient),
+						reflect.ValueOf(protoPacket.Message()),
+					})
+				} else {
+					// func (h *MockClient) OnMessageName(res *pb.MessageName, errorCode int)
+					handlerMethod.Func.Call([]reflect.Value{
+						reflect.ValueOf(mockClient),
+						reflect.ValueOf(protoPacket.Message()),
+						reflect.ValueOf(int(protoPacket.ErrorCode())),
+					})
+				}
 				return
 			}
 		}
-		this.DefaultConnectionHandler.OnRecvPacket(connection, packet)
+		h.DefaultConnectionHandler.OnRecvPacket(connection, packet)
 	}
 }
 
 // 通过反射自动注册消息回调
-func (this *MockClientHandler) autoRegister() {
+func (h *MockClientHandler) autoRegister() {
 	typ := reflect.TypeOf(&MockClient{})
 	for i := 0; i < typ.NumMethod(); i++ {
 		method := typ.Method(i)
-		// func (this *MockClient) OnMessageName(res *pb.MessageName)
-		if method.Type.NumIn() != 2 || !strings.HasPrefix(method.Name, "On") {
+		// 支持2种格式的回调
+		// func (h *MockClient) OnMessageName(res *pb.MessageName)
+		// func (h *MockClient) OnMessageName(res *pb.MessageName, errorCode int)
+		if method.Type.NumIn() != 2 && method.Type.NumIn() != 3 {
 			continue
 		}
-		methonArg1 := method.Type.In(1)
-		if !strings.HasPrefix(methonArg1.String(), "*pb.") {
+		if !strings.HasPrefix(method.Name, "On") {
 			continue
+		}
+		protoArg := method.Type.In(1)
+		if !strings.HasPrefix(protoArg.String(), "*pb.") {
+			continue
+		}
+		if method.Type.NumIn() == 3 {
+			// func (h *MockClient) OnMessageName(res *pb.MessageName, errorCode int)
+			errorCodeArg := method.Type.In(2)
+			if errorCodeArg.Kind() != reflect.Int {
+				continue
+			}
 		}
 		// 消息名,如: LoginRes
-		messageName := methonArg1.String()[strings.LastIndex(methonArg1.String(), ".")+1:]
+		messageName := protoArg.String()[strings.LastIndex(protoArg.String(), ".")+1:]
 		// 函数名必须是onLoginRes
 		if method.Name != fmt.Sprintf("On%v", messageName) {
 			logger.Debug("methodName not match:%v", method.Name)
@@ -91,9 +116,9 @@ func (this *MockClientHandler) autoRegister() {
 		}
 		cmd := PacketCommand(messageId)
 		// 注册消息回调到组件上
-		this.methods[cmd] = method
+		h.methods[cmd] = method
 		// 注册消息的构造函数
-		this.DefaultConnectionHandler.Register(cmd, nil, reflect.New(methonArg1.Elem()).Interface().(proto.Message))
-		logger.Debug("register %v %v", messageId, method.Name)
+		h.DefaultConnectionHandler.Register(cmd, nil, reflect.New(protoArg.Elem()).Interface().(proto.Message))
+		logger.Debug("register %v %v hasErrorCode:%v", messageId, method.Name, method.Type.NumIn() == 3)
 	}
 }

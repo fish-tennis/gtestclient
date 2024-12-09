@@ -1,5 +1,5 @@
-github.com/fish-tennis/gnet v1.1.2 h1:9HGK76v49fDrAqPmwhqglQNdO91GRix0sqPeN+nrdgw=
-github.com/fish-tennis/gnet v1.1.2/go.mod h1:f33rsGHToKEmKhtyicpRcJX9uKVBrBof1aJcuaNUjcg=
+github.com/fish-tennis/gnet v1.2.0 h1:XkZOVMAjMGzQmVZHdYa59pCHDdEtQoETaNVT1/rAzR8=
+github.com/fish-tennis/gnet v1.2.0/go.mod h1:f33rsGHToKEmKhtyicpRcJX9uKVBrBof1aJcuaNUjcg=
 github.com/google/go-cmp v0.5.5 h1:Khx7svrCpmxxtHBq5j2mp/xVjsi8hQMfNLvJFAlrGgU=
 github.com/gorilla/websocket v1.5.1 h1:gmztn0JnHVt9JZquRuzLw3g4wouNVzKL15iLr/zn/QY=
 github.com/gorilla/websocket v1.5.1/go.mod h1:x3kM2JMyaluk02fnUJpQuwD2dCS5NDG2ZHL0uE0tcaY=

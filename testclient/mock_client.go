@@ -26,7 +26,7 @@ func newMockClient(accountName string) *MockClient {
 	}
 }
 
-func (this *MockClient) getConnectionConfig() *ConnectionConfig {
+func (c *MockClient) getConnectionConfig() *ConnectionConfig {
 	return &ConnectionConfig{
 		SendPacketCacheCap: 16,
 		SendBufferSize:     1024 * 10,
@@ -42,46 +42,46 @@ func (this *MockClient) getConnectionConfig() *ConnectionConfig {
 	}
 }
 
-func (this *MockClient) connectServer(serverAddr string) bool {
+func (c *MockClient) connectServer(serverAddr string) bool {
 	if !_testClient.useWebSocket {
-		this.conn = GetNetMgr().NewConnector(_testClient.ctx, serverAddr, this.getConnectionConfig(),
-			this.accountName)
+		c.conn = GetNetMgr().NewConnector(_testClient.ctx, serverAddr, c.getConnectionConfig(),
+			c.accountName)
 	} else {
-		this.conn = GetNetMgr().NewWsConnector(_testClient.ctx, serverAddr, this.getConnectionConfig(),
-			this.accountName)
+		c.conn = GetNetMgr().NewWsConnector(_testClient.ctx, serverAddr, c.getConnectionConfig(),
+			c.accountName)
 	}
-	return this.conn != nil
+	return c.conn != nil
 }
 
-func (this *MockClient) start() {
+func (c *MockClient) start() {
 	go func() {
 		//defer func() {
-		//	_testClient.removeMockClient(this.accountName)
+		//	_testClient.removeMockClient(c.accountName)
 		//	if err := recover(); err != nil {
 		//		logger.Error(err.(error).Error())
 		//	}
 		//}()
 
-		this.connectServer(_testClient.serverAddr)
-		if this.conn == nil {
-			_testClient.removeMockClient(this.accountName)
+		c.connectServer(_testClient.serverAddr)
+		if c.conn == nil {
+			_testClient.removeMockClient(c.accountName)
 			return
 		}
-		this.Send(&pb.LoginReq{
-			AccountName: this.accountName,
-			Password:    this.accountName,
+		c.Send(&pb.LoginReq{
+			AccountName: c.accountName,
+			Password:    c.accountName,
 		})
-		logger.Debug("LoginReq %v", this.accountName)
+		logger.Debug("LoginReq %v", c.accountName)
 	}()
 }
 
-func (this *MockClient) Send(message proto.Message, opts ...SendOption) bool {
+func (c *MockClient) Send(message proto.Message, opts ...SendOption) bool {
 	clientCmd := GetClientCommandByProto(message)
 	if clientCmd <= 0 {
 		logger.Error("clientCmdNotFound messageName:%v", proto.MessageName(message))
 		return false
 	}
-	if this.conn.Send(PacketCommand(clientCmd), message) {
+	if c.conn.Send(PacketCommand(clientCmd), message) {
 		logger.Debug("Send %v messageName:%v", clientCmd, proto.MessageName(message))
 		return true
 	} else {
@@ -90,176 +90,176 @@ func (this *MockClient) Send(message proto.Message, opts ...SendOption) bool {
 	}
 }
 
-func (this *MockClient) OnLoginRes(res *pb.LoginRes) {
-	logger.Debug("onLoginRes:%v", res)
-	if res.Error == "NotReg" {
+func (c *MockClient) OnLoginRes(res *pb.LoginRes, errorCode int) {
+	logger.Debug("onLoginRes:%v err:%v", res, errorCode)
+	if errorCode == int(pb.ErrorCode_ErrorCode_NotReg) {
 		// 自动注册账号
 		// 这里是单纯的测试,账号和密码直接使用明文,实际项目需要做md5之类的处理
-		this.Send(&pb.AccountReg{
-			AccountName: this.accountName,
-			Password:    this.accountName,
+		c.Send(&pb.AccountReg{
+			AccountName: c.accountName,
+			Password:    c.accountName,
 		})
-	} else if res.Error == "" {
-		this.loginRes = res
+	} else if errorCode == 0 {
+		c.loginRes = res
 		if !_testClient.useGate {
 			// 客户端直连模式,需要断开和LoginServer的连接,并连接分配的GameServer
-			this.conn.SetTag("")
-			this.conn.Close()
+			c.conn.SetTag("")
+			c.conn.Close()
 			// 账号登录成功后,连接游戏服
-			this.connectServer(res.GetGameServer().GetClientListenAddr())
-			if this.conn == nil {
-				logger.Error("%v connect game failed", this.accountName)
-				_testClient.removeMockClient(this.accountName)
+			c.connectServer(res.GetGameServer().GetClientListenAddr())
+			if c.conn == nil {
+				logger.Error("%v connect game failed", c.accountName)
+				_testClient.removeMockClient(c.accountName)
 				return
 			}
 		}
-		this.Send(&pb.PlayerEntryGameReq{
-			AccountId:    this.loginRes.GetAccountId(),
-			LoginSession: this.loginRes.GetLoginSession(),
+		c.Send(&pb.PlayerEntryGameReq{
+			AccountId:    c.loginRes.GetAccountId(),
+			LoginSession: c.loginRes.GetLoginSession(),
 			RegionId:     1,
 		})
 	} else {
-		this.conn.Close()
+		c.conn.Close()
 	}
 }
 
-func (this *MockClient) OnAccountRes(res *pb.AccountRes) {
-	logger.Debug("onAccountRes:%v", res)
-	if res.Error == "" {
-		this.Send(&pb.LoginReq{
-			AccountName: this.accountName,
-			Password:    this.accountName,
+func (c *MockClient) OnAccountRes(res *pb.AccountRes, errorCode int) {
+	logger.Debug("onAccountRes:%v err:%v", res, errorCode)
+	if errorCode == 0 {
+		c.Send(&pb.LoginReq{
+			AccountName: c.accountName,
+			Password:    c.accountName,
 		})
 	}
 }
 
-func (this *MockClient) OnPlayerEntryGameRes(res *pb.PlayerEntryGameRes) {
+func (c *MockClient) OnPlayerEntryGameRes(res *pb.PlayerEntryGameRes, errorCode int) {
 	logger.Debug("onPlayerEntryGameRes:%v", res)
-	if res.Error == "" {
-		this.playerEntryGameRes = res
+	if errorCode == 0 {
+		c.playerEntryGameRes = res
 		// 玩家登录游戏服成功,模拟一个交互消息
-		this.Send(&pb.CoinReq{
+		c.Send(&pb.CoinReq{
 			AddCoin: 1,
 		})
-		this.Send(&pb.GuildListReq{
+		c.Send(&pb.GuildListReq{
 			PageIndex: 0,
 		})
 		if res.GuildData.GuildId > 0 {
 			// 已有公会 获取公会数据
-			this.Send(&pb.GuildDataViewReq{})
+			c.Send(&pb.GuildDataViewReq{})
 		}
 		return
 	}
 	// 还没角色,则创建新角色
-	if res.Error == "NoPlayer" {
-		this.Send(&pb.CreatePlayerReq{
-			AccountId:    this.loginRes.GetAccountId(),
-			LoginSession: this.loginRes.GetLoginSession(),
+	if errorCode == int(pb.ErrorCode_ErrorCode_NoPlayer) {
+		c.Send(&pb.CreatePlayerReq{
+			AccountId:    c.loginRes.GetAccountId(),
+			LoginSession: c.loginRes.GetLoginSession(),
 			RegionId:     1,
-			Name:         this.accountName,
+			Name:         c.accountName,
 			Gender:       1,
 		})
 		return
 	}
 	// 登录遇到问题,服务器提示客户端稍后重试
-	if res.Error == "TryLater" {
+	if errorCode == int(pb.ErrorCode_ErrorCode_TryLater) {
 		// 延迟重试
 		time.AfterFunc(time.Second, func() {
-			this.Send(&pb.PlayerEntryGameReq{
-				AccountId:    this.loginRes.GetAccountId(),
-				LoginSession: this.loginRes.GetLoginSession(),
+			c.Send(&pb.PlayerEntryGameReq{
+				AccountId:    c.loginRes.GetAccountId(),
+				LoginSession: c.loginRes.GetLoginSession(),
 				RegionId:     1,
 			})
 		})
 	}
 }
 
-func (this *MockClient) OnCreatePlayerRes(res *pb.CreatePlayerRes) {
+func (c *MockClient) OnCreatePlayerRes(res *pb.CreatePlayerRes, errorCode int) {
 	logger.Debug("onCreatePlayerRes:%v", res)
-	if res.Error == "" {
-		this.Send(&pb.PlayerEntryGameReq{
-			AccountId:    this.loginRes.GetAccountId(),
-			LoginSession: this.loginRes.GetLoginSession(),
+	if errorCode == 0 {
+		c.Send(&pb.PlayerEntryGameReq{
+			AccountId:    c.loginRes.GetAccountId(),
+			LoginSession: c.loginRes.GetLoginSession(),
 			RegionId:     1,
 		})
 	}
 }
 
-func (this *MockClient) OnErrorRes(res *pb.ErrorRes) {
+func (c *MockClient) OnErrorRes(res *pb.ErrorRes) {
 	logger.Debug("OnErrorRes cmd:%v id:%v str:%v", res.Command, res.ResultId, res.ResultStr)
 }
 
-func (this *MockClient) OnGateRouteClientPacketError(res *pb.GateRouteClientPacketError) {
+func (c *MockClient) OnGateRouteClientPacketError(res *pb.GateRouteClientPacketError) {
 	logger.Debug("OnGateRouteClientPacketError id:%v str:%v", res.ResultId, res.ResultStr)
-	this.conn.Close()
+	c.conn.Close()
 }
 
-func (this *MockClient) OnCoinRes(res *pb.CoinRes) {
+func (c *MockClient) OnCoinRes(res *pb.CoinRes) {
 	logger.Debug("OnCoinRes:%v", res)
 }
 
-func (this *MockClient) OnFinishQuestRes(res *pb.FinishQuestRes) {
+func (c *MockClient) OnFinishQuestRes(res *pb.FinishQuestRes) {
 	logger.Debug("OnFinishQuestRes:%v", res)
 }
 
-func (this *MockClient) OnGuildCreateRes(res *pb.GuildCreateRes) {
+func (c *MockClient) OnGuildCreateRes(res *pb.GuildCreateRes) {
 	logger.Debug("OnGuildCreateRes:%v", res)
 }
 
-func (this *MockClient) OnGuildListRes(res *pb.GuildListRes) {
+func (c *MockClient) OnGuildListRes(res *pb.GuildListRes) {
 	logger.Debug("OnGuildListRes:%v", res)
 	//if len(res.GuildInfos) > 0 {
-	//	if this.playerEntryGameRes.GuildData.GuildId == 0 {
+	//	if c.playerEntryGameRes.GuildData.GuildId == 0 {
 	//		// 申请加入公会
-	//		this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinReq), &pb.GuildJoinReq{
+	//		c.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildJoinReq), &pb.GuildJoinReq{
 	//			Id: res.GuildInfos[0].Id,
 	//		})
 	//		logger.Debug("GuildJoinReq:%v", res.GuildInfos[0].Id)
 	//	}
 	//} else {
 	//	// 没有公会 就创建一个
-	//	this.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildCreateReq), &pb.GuildCreateReq{
-	//		Name: fmt.Sprintf("%v's guild", this.accountName),
-	//		Intro: fmt.Sprintf("create by %v", this.accountName),
+	//	c.conn.Send(PacketCommand(pb.CmdGuild_Cmd_GuildCreateReq), &pb.GuildCreateReq{
+	//		Name: fmt.Sprintf("%v's guild", c.accountName),
+	//		Intro: fmt.Sprintf("create by %v", c.accountName),
 	//	})
 	//}
 }
 
-func (this *MockClient) OnGuildJoinRes(res *pb.GuildJoinRes) {
+func (c *MockClient) OnGuildJoinRes(res *pb.GuildJoinRes) {
 	logger.Debug("OnGuildJoinRes:%v", res)
 }
 
-func (this *MockClient) OnGuildJoinReqTip(res *pb.GuildJoinReqTip) {
+func (c *MockClient) OnGuildJoinReqTip(res *pb.GuildJoinReqTip) {
 	logger.Debug("OnGuildJoinReqTip:%v", res)
 	// 同意入会请求
-	this.Send(&pb.GuildJoinAgreeReq{
+	c.Send(&pb.GuildJoinAgreeReq{
 		JoinPlayerId: res.PlayerId,
 		IsAgree:      true,
 	})
 }
 
-func (this *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
+func (c *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
 	logger.Debug("OnGuildDataViewRes:%v", res)
 	for _, v := range res.GuildData.JoinRequests {
 		// 同意入会请求
-		this.Send(&pb.GuildJoinAgreeReq{
+		c.Send(&pb.GuildJoinAgreeReq{
 			JoinPlayerId: v.PlayerId,
 			IsAgree:      true,
 		})
 	}
 }
 
-func (this *MockClient) OnGuildJoinAgreeRes(res *pb.GuildJoinAgreeRes) {
+func (c *MockClient) OnGuildJoinAgreeRes(res *pb.GuildJoinAgreeRes) {
 	logger.Debug("OnGuildJoinAgreeRes:%v", res)
 }
 
-func (this *MockClient) OnGuildJoinReqOpResult(res *pb.GuildJoinReqOpResult) {
+func (c *MockClient) OnGuildJoinReqOpResult(res *pb.GuildJoinReqOpResult) {
 	logger.Debug("OnGuildJoinReqOpResult:%v", res)
 }
 
 // 测试命令
 // 支持的命令,详见https://github.com/fish-tennis/gserver/gameserver/test_cmd.go
-func (this *MockClient) OnInputCmd(cmd string) {
+func (c *MockClient) OnInputCmd(cmd string) {
 	// 本地测试命令
 	cmdStrs := strings.Split(cmd, " ")
 	if len(cmdStrs) == 0 {
@@ -270,9 +270,9 @@ func (this *MockClient) OnInputCmd(cmd string) {
 	if cmdKey == "guild" && len(cmdArgs) >= 1 {
 		if cmdArgs[0] == "create" {
 			// 创建公会
-			this.Send(&pb.GuildCreateReq{
-				Name:  fmt.Sprintf("%v's guild", this.accountName),
-				Intro: fmt.Sprintf("create by %v", this.accountName),
+			c.Send(&pb.GuildCreateReq{
+				Name:  fmt.Sprintf("%v's guild", c.accountName),
+				Intro: fmt.Sprintf("create by %v", c.accountName),
 			})
 			return
 		} else if cmdArgs[0] == "join" {
@@ -282,14 +282,14 @@ func (this *MockClient) OnInputCmd(cmd string) {
 			}
 			guildId, _ := strconv.ParseInt(cmdArgs[1], 10, 64)
 			// 申请加入公会
-			this.Send(&pb.GuildJoinReq{
+			c.Send(&pb.GuildJoinReq{
 				Id: guildId,
 			})
 			return
 		}
 	}
 	// 发给服务器的测试命令
-	this.Send(&pb.TestCmd{
+	c.Send(&pb.TestCmd{
 		Cmd: cmd,
 	})
 }
