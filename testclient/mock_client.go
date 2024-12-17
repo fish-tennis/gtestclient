@@ -138,16 +138,9 @@ func (c *MockClient) OnPlayerEntryGameRes(res *pb.PlayerEntryGameRes, errorCode 
 	if errorCode == 0 {
 		c.playerEntryGameRes = res
 		// 玩家登录游戏服成功,模拟一个交互消息
-		c.Send(&pb.CoinReq{
-			AddCoin: 1,
-		})
 		c.Send(&pb.GuildListReq{
 			PageIndex: 0,
 		})
-		if res.GuildData.GuildId > 0 {
-			// 已有公会 获取公会数据
-			c.Send(&pb.GuildDataViewReq{})
-		}
 		return
 	}
 	// 还没角色,则创建新角色
@@ -194,12 +187,32 @@ func (c *MockClient) OnGateRouteClientPacketError(res *pb.GateRouteClientPacketE
 	c.conn.Close()
 }
 
-func (c *MockClient) OnCoinRes(res *pb.CoinRes) {
-	logger.Debug("OnCoinRes:%v", res)
+func (c *MockClient) OnBaseInfoSync(res *pb.BaseInfoSync) {
+	logger.Debug("OnBaseInfoSync:%v", res)
+}
+
+func (c *MockClient) OnMoneySync(res *pb.MoneySync) {
+	logger.Debug("OnMoneySync:%v", res)
+}
+
+func (c *MockClient) OnBagsSync(res *pb.BagsSync) {
+	logger.Debug("OnBagsSync:%v", res)
+}
+
+func (c *MockClient) OnQuestSync(res *pb.QuestSync) {
+	logger.Debug("OnQuestSync:%v", res)
 }
 
 func (c *MockClient) OnFinishQuestRes(res *pb.FinishQuestRes) {
 	logger.Debug("OnFinishQuestRes:%v", res)
+}
+
+func (c *MockClient) OnGuildSync(res *pb.GuildSync) {
+	logger.Debug("OnGuildSync:%v", res)
+	if res.Data.GuildId > 0 {
+		// 已有公会 获取公会数据
+		c.Send(&pb.GuildDataViewReq{})
+	}
 }
 
 func (c *MockClient) OnGuildCreateRes(res *pb.GuildCreateRes) {
@@ -255,6 +268,10 @@ func (c *MockClient) OnGuildJoinAgreeRes(res *pb.GuildJoinAgreeRes) {
 
 func (c *MockClient) OnGuildJoinReqOpResult(res *pb.GuildJoinReqOpResult) {
 	logger.Debug("OnGuildJoinReqOpResult:%v", res)
+}
+
+func (c *MockClient) OnActivitySync(res *pb.ActivitySync) {
+	logger.Debug("OnActivitySync:%v", res)
 }
 
 // 测试命令
