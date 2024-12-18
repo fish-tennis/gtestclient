@@ -199,8 +199,16 @@ func (c *MockClient) OnBagsSync(res *pb.BagsSync) {
 	logger.Debug("OnBagsSync:%v", res)
 }
 
+func (c *MockClient) OnBagUpdate(res *pb.BagUpdate) {
+	logger.Debug("OnBagUpdate:%v", res)
+}
+
 func (c *MockClient) OnQuestSync(res *pb.QuestSync) {
 	logger.Debug("OnQuestSync:%v", res)
+}
+
+func (c *MockClient) OnQuestUpdate(res *pb.QuestUpdate) {
+	logger.Debug("OnQuestUpdate:%v", res)
 }
 
 func (c *MockClient) OnFinishQuestRes(res *pb.FinishQuestRes) {
@@ -272,6 +280,22 @@ func (c *MockClient) OnGuildJoinReqOpResult(res *pb.GuildJoinReqOpResult) {
 
 func (c *MockClient) OnActivitySync(res *pb.ActivitySync) {
 	logger.Debug("OnActivitySync:%v", res)
+}
+
+func (c *MockClient) OnActivityQuestUpdate(res *pb.ActivityQuestUpdate) {
+	logger.Debug("OnActivityQuestUpdate:%v", res)
+}
+
+func (c *MockClient) OnActivityQuestFinishRes(res *pb.ActivityQuestFinishRes) {
+	logger.Debug("OnActivityQuestFinishRes:%v", res)
+}
+
+func (c *MockClient) OnActivityExchangeUpdate(res *pb.ActivityExchangeUpdate) {
+	logger.Debug("OnActivityExchangeUpdate:%v", res)
+}
+
+func (c *MockClient) OnActivityExchangeRes(res *pb.ActivityExchangeRes) {
+	logger.Debug("OnActivityExchangeRes:%v", res)
 }
 
 // 测试命令
