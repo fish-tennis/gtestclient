@@ -199,8 +199,8 @@ func (c *MockClient) OnBagsSync(res *pb.BagsSync) {
 	logger.Debug("OnBagsSync:%v", res)
 }
 
-func (c *MockClient) OnBagUpdate(res *pb.BagUpdate) {
-	logger.Debug("OnBagUpdate:%v", res)
+func (c *MockClient) OnElemContainerUpdate(res *pb.ElemContainerUpdate) {
+	logger.Debug("OnElemContainerUpdate:%v", res)
 }
 
 func (c *MockClient) OnQuestSync(res *pb.QuestSync) {

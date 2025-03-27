@@ -31,7 +31,12 @@ func NewMockClientHandler(protoCodec Codec) *MockClientHandler {
 	handler.Register(PacketCommand(pb.CmdClient_Cmd_HeartBeatRes), func(connection Connection, packet Packet) {
 	}, new(pb.HeartBeatRes))
 	handler.SetUnRegisterHandler(func(connection Connection, packet Packet) {
-		logger.Debug("un register %v", string(packet.Message().ProtoReflect().Descriptor().Name()))
+		cmd := packet.Command()
+		messageName := ""
+		if packet.Message() != nil {
+			messageName = string(packet.Message().ProtoReflect().Descriptor().Name())
+		}
+		logger.Debug("un register %v(%v)", messageName, cmd)
 	})
 	return handler
 }
