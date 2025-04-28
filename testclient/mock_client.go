@@ -282,14 +282,6 @@ func (c *MockClient) OnActivitySync(res *pb.ActivitySync) {
 	logger.Debug("OnActivitySync:%v", res)
 }
 
-func (c *MockClient) OnActivityQuestUpdate(res *pb.ActivityQuestUpdate) {
-	logger.Debug("OnActivityQuestUpdate:%v", res)
-}
-
-func (c *MockClient) OnActivityQuestFinishRes(res *pb.ActivityQuestFinishRes) {
-	logger.Debug("OnActivityQuestFinishRes:%v", res)
-}
-
 func (c *MockClient) OnActivityExchangeUpdate(res *pb.ActivityExchangeUpdate) {
 	logger.Debug("OnActivityExchangeUpdate:%v", res)
 }
