@@ -77,9 +77,10 @@ func main() {
 			consoleReader := bufio.NewReader(os.Stdin)
 			for {
 				lineBytes, _, _ := consoleReader.ReadLine()
-				line := strings.ToLower(string(lineBytes))
+				line := string(lineBytes)
+				lineLower := strings.ToLower(string(lineBytes))
 				logger.Info("line:%v", line)
-				if line == "close" || line == "exit" {
+				if lineLower == "close" || lineLower == "exit" {
 					logger.Info("kill by console input")
 					// 模拟一个kill信号,以方便退出流程
 					signalKillNotify <- os.Kill
