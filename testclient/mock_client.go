@@ -282,12 +282,16 @@ func (c *MockClient) OnActivitySync(res *pb.ActivitySync) {
 	logger.Debug("OnActivitySync:%v", res)
 }
 
-func (c *MockClient) OnActivityExchangeUpdate(res *pb.ActivityExchangeUpdate) {
-	logger.Debug("OnActivityExchangeUpdate:%v", res)
+func (c *MockClient) OnExchangeSync(res *pb.ExchangeSync) {
+	logger.Debug("OnExchangeSync:%v", res)
 }
 
-func (c *MockClient) OnActivityExchangeRes(res *pb.ActivityExchangeRes) {
-	logger.Debug("OnActivityExchangeRes:%v", res)
+func (c *MockClient) OnExchangeUpdate(res *pb.ExchangeUpdate) {
+	logger.Debug("OnExchangeUpdate:%v", res)
+}
+
+func (c *MockClient) OnExchangeRes(res *pb.ExchangeRes) {
+	logger.Debug("OnExchangeRes:%v", res)
 }
 
 // 测试命令
