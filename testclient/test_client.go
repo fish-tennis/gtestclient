@@ -44,6 +44,7 @@ func (t *TestClient) Init(ctx context.Context, useGate bool, useWebsocket bool, 
 	t.mockClientBeginId = mockClientBeginId
 	t.mockClients = make(map[string]*MockClient)
 
+	InitCommandMappingFromFile("gen/message_command_mapping.json")
 	if !t.useWebSocket {
 		t.clientCodec = NewProtoCodec(nil)
 	} else {

@@ -6,8 +6,7 @@ import (
 	"github.com/fish-tennis/gtestclient/logger"
 	"github.com/fish-tennis/gtestclient/pb"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
+	"log/slog"
 	"reflect"
 	"strings"
 	"time"
@@ -23,12 +22,14 @@ func NewMockClientHandler(protoCodec Codec) *MockClientHandler {
 		DefaultConnectionHandler: *NewDefaultConnectionHandler(protoCodec),
 		methods:                  make(map[PacketCommand]reflect.Method),
 	}
+	cmdHeartBeatReq := GetCommandByProto(new(pb.HeartBeatReq))
 	handler.RegisterHeartBeat(func() Packet {
-		return NewProtoPacket(PacketCommand(pb.CmdClient_Cmd_HeartBeatReq), &pb.HeartBeatReq{
+		return NewProtoPacket(PacketCommand(cmdHeartBeatReq), &pb.HeartBeatReq{
 			Timestamp: time.Now().UnixNano() / int64(time.Millisecond),
 		})
 	})
-	handler.Register(PacketCommand(pb.CmdClient_Cmd_HeartBeatRes), func(connection Connection, packet Packet) {
+	cmdHeartBeatRes := GetCommandByProto(new(pb.HeartBeatRes))
+	handler.Register(PacketCommand(cmdHeartBeatRes), func(connection Connection, packet Packet) {
 	}, new(pb.HeartBeatRes))
 	handler.SetUnRegisterHandler(func(connection Connection, packet Packet) {
 		cmd := packet.Command()
@@ -104,19 +105,10 @@ func (h *MockClientHandler) autoRegister() {
 			logger.Debug("methodName not match:%v", method.Name)
 			continue
 		}
-		// Cmd_LoginRes
-		enumValueName := fmt.Sprintf("Cmd_%v", messageName)
-		var messageId int32
-		protoregistry.GlobalTypes.RangeEnums(func(enumType protoreflect.EnumType) bool {
-			// gserver.Login.CmdLogin
-			enumValueDescriptor := enumType.Descriptor().Values().ByName(protoreflect.Name(enumValueName))
-			if enumValueDescriptor != nil {
-				messageId = int32(enumValueDescriptor.Number())
-				return false
-			}
-			return true
-		})
+
+		messageId := GetCommandByProto(reflect.New(protoArg.Elem()).Interface().(proto.Message))
 		if messageId == 0 {
+			slog.Debug("messageId==0", "method", method.Name, "messageName", messageName)
 			continue
 		}
 		cmd := PacketCommand(messageId)

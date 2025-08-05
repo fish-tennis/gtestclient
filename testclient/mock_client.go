@@ -76,7 +76,7 @@ func (c *MockClient) start() {
 }
 
 func (c *MockClient) Send(message proto.Message, opts ...SendOption) bool {
-	clientCmd := GetClientCommandByProto(message)
+	clientCmd := GetCommandByProto(message)
 	if clientCmd <= 0 {
 		logger.Error("clientCmdNotFound messageName:%v", proto.MessageName(message))
 		return false

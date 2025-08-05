@@ -1,60 +1,75 @@
 package testclient
 
 import (
-	"fmt"
+	"encoding/json"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
-	"strings"
+	"google.golang.org/protobuf/runtime/protoimpl"
+	"log/slog"
+	"os"
+	"reflect"
+)
+
+var (
+	// reflect.TypeOf(*pb.Xxx).Elem() -> packetCommand
+	_messageTypeCmdMapping = make(map[reflect.Type]int32)
+	_cmdMessageNameMapping = make(map[int32]string)
 )
 
 const (
-	// 客户端和服务器之间的消息号定义
-	CmdClientEnumName = "CmdClient" // 对应proto/cmd_client.proto里的enum CmdClient
+	// 对应proto文件里的package导出名
+	ProtoPackageName = "gserver"
 )
 
-// 本项目的request和response的消息号规范: resCmd = reqCmd + 1
-func GetResCommand(reqCommand int32) int32 {
-	return reqCommand + 1
+func GetCommandByProto(protoMessage proto.Message) int32 {
+	typ := reflect.TypeOf(protoMessage)
+	if typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+	if cmd, ok := _messageTypeCmdMapping[typ]; ok {
+		return cmd
+	}
+	slog.Warn("GetCommandByProtoErr", "messageName", proto.MessageName(protoMessage))
+	return 0
 }
 
-func GetClientCommandByProto(protoMessage proto.Message) int32 {
-	return GetCommandByProto(CmdClientEnumName, protoMessage)
+func InitCommandMappingFromFile(file string) {
+	mapping := loadCommandMapping(file)
+	for messageName, messageId := range mapping {
+		fullMessageName := GetFullMessageName(ProtoPackageName, messageName)
+		messageType, err := protoregistry.GlobalTypes.FindMessageByName(protoreflect.FullName(fullMessageName))
+		if err != nil {
+			slog.Warn("FindMessageByNameErr", "messageName", messageName, "id", messageId, "err", err)
+			continue
+		}
+		if messageInfo, ok := messageType.(*protoimpl.MessageInfo); ok {
+			typ := messageInfo.GoReflectType.Elem()
+			_messageTypeCmdMapping[typ] = int32(messageId)
+			_cmdMessageNameMapping[int32(messageId)] = messageName
+			slog.Info("CommandMapping", "messageName", messageName, "id", messageId)
+		}
+	}
 }
 
-func GetCommandByProto(cmdEnumName string, protoMessage proto.Message) int32 {
-	// CmdClient或CmdServer
-	cmdEnumName = fmt.Sprintf("%v.%v", "gserver", cmdEnumName)
-	enumType, err := protoregistry.GlobalTypes.FindEnumByName(protoreflect.FullName(cmdEnumName))
+func loadCommandMapping(fileName string) map[string]int {
+	mapping := make(map[string]int)
+	fileData, err := os.ReadFile(fileName)
 	if err != nil {
-		//gentity.Debug("%v err:%v", enumTypeName, err)
-		return 0
+		slog.Error("loadCommandMappingErr", "fileName", fileName, "err", err)
+		return mapping
 	}
-	// 如: pb.FinishQuestReq -> Cmd_FinishQuestReq
-	enumIdName := GetEnumValueNameOfProtoMessage(protoMessage)
-	enumValue := enumType.Descriptor().Values().ByName(protoreflect.Name(enumIdName))
-	if enumValue == nil {
-		return 0
+	err = json.Unmarshal(fileData, &mapping)
+	if err != nil {
+		slog.Error("loadCommandMappingErr", "fileName", fileName, "err", err)
+		return mapping
 	}
-	enumNumber := enumValue.Number()
-	//logger.Debug("enum %v:%v", enumIdName, enumNumber)
-	return int32(enumNumber)
+	return mapping
 }
 
-func GetShortNameOfProtoMessage(protoMessage proto.Message) string {
-	messageName := string(proto.MessageName(protoMessage).Name())
-	// 消息名,如: FinishQuestReq
-	// *pb.FinishQuestReq -> FinishQuestReq
-	idx := strings.LastIndex(messageName, ".")
-	if idx < 0 {
+func GetFullMessageName(packageName, messageName string) string {
+	if ProtoPackageName == "" {
 		return messageName
 	}
-	return messageName[idx+1:]
-}
-
-// proto.Message对应的消息号枚举值名
-// 本项目的消息号的规范: Cmd_MessageName
-func GetEnumValueNameOfProtoMessage(protoMessage proto.Message) string {
-	messageName := GetShortNameOfProtoMessage(protoMessage)
-	return fmt.Sprintf("Cmd_%v", messageName)
+	return ProtoPackageName + "." + messageName
 }
