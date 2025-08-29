@@ -1,6 +1,7 @@
 package testclient
 
 import (
+	"crypto/md5"
 	"fmt"
 	. "github.com/fish-tennis/gnet"
 	"github.com/fish-tennis/gtestclient/logger"
@@ -53,6 +54,11 @@ func (c *MockClient) connectServer(serverAddr string) bool {
 	return c.conn != nil
 }
 
+// 账号协议不要发明文密码,而且要加一些混淆词,防止被"撞库"
+func GetMd5Password(password string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(password+"gserver")))
+}
+
 func (c *MockClient) start() {
 	go func() {
 		//defer func() {
@@ -69,7 +75,7 @@ func (c *MockClient) start() {
 		}
 		c.Send(&pb.LoginReq{
 			AccountName: c.accountName,
-			Password:    c.accountName,
+			Password:    GetMd5Password(c.accountName),
 		})
 		logger.Debug("LoginReq %v", c.accountName)
 	}()
@@ -128,7 +134,7 @@ func (c *MockClient) OnAccountRes(res *pb.AccountRes, errorCode int) {
 	if errorCode == 0 {
 		c.Send(&pb.LoginReq{
 			AccountName: c.accountName,
-			Password:    c.accountName,
+			Password:    GetMd5Password(c.accountName),
 		})
 	}
 }
