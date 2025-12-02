@@ -3,7 +3,7 @@ module github.com/fish-tennis/gtestclient
 go 1.20
 
 require (
-	github.com/fish-tennis/gnet v1.2.1
+	github.com/fish-tennis/gnet v1.3.1
 	google.golang.org/protobuf v1.34.1
 )
 

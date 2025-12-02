@@ -29,13 +29,13 @@ func newMockClient(accountName string) *MockClient {
 
 func (c *MockClient) getConnectionConfig() *ConnectionConfig {
 	return &ConnectionConfig{
-		SendPacketCacheCap: 16,
+		SendPacketCacheCap: 256,
 		SendBufferSize:     1024 * 10,
 		RecvBufferSize:     1024 * 10,
 		MaxPacketSize:      1024 * 10,
-		RecvTimeout:        0,
+		RecvTimeout:        20,
 		HeartBeatInterval:  5,
-		WriteTimeout:       0,
+		WriteTimeout:       10,
 		Codec:              _testClient.clientCodec,
 		Handler:            _testClient.clientHandler,
 		Path:               "/ws", // WebSocket才需要
