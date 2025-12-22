@@ -100,10 +100,9 @@ func (c *MockClient) OnLoginRes(res *pb.LoginRes, errorCode int) {
 	logger.Debug("onLoginRes:%v err:%v", res, errorCode)
 	if errorCode == int(pb.ErrorCode_ErrorCode_NotReg) {
 		// 自动注册账号
-		// 这里是单纯的测试,账号和密码直接使用明文,实际项目需要做md5之类的处理
 		c.Send(&pb.AccountReg{
 			AccountName: c.accountName,
-			Password:    c.accountName,
+			Password:    GetMd5Password(c.accountName),
 		})
 	} else if errorCode == 0 {
 		c.loginRes = res
@@ -197,12 +196,12 @@ func (c *MockClient) OnBaseInfoSync(res *pb.BaseInfoSync) {
 	logger.Debug("OnBaseInfoSync:%v", res)
 }
 
-func (c *MockClient) OnMoneySync(res *pb.MoneySync) {
-	logger.Debug("OnMoneySync:%v", res)
-}
-
 func (c *MockClient) OnBagsSync(res *pb.BagsSync) {
 	logger.Debug("OnBagsSync:%v", res)
+}
+
+func (c *MockClient) OnItemUseRes(res *pb.ItemUseRes) {
+	logger.Debug("OnItemUseRes:%v", res)
 }
 
 func (c *MockClient) OnElemContainerUpdate(res *pb.ElemContainerUpdate) {
