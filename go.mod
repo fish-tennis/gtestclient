@@ -1,13 +1,10 @@
 module github.com/fish-tennis/gtestclient
 
-go 1.20
+go 1.26
 
 require (
-	github.com/fish-tennis/gnet v1.3.1
-	google.golang.org/protobuf v1.34.1
+	github.com/fish-tennis/gnet v1.4.1
+	google.golang.org/protobuf v1.36.10
 )
 
-require (
-	github.com/gorilla/websocket v1.5.1 // indirect
-	golang.org/x/net v0.25.0 // indirect
-)
+require github.com/gorilla/websocket v1.5.3 // indirect
