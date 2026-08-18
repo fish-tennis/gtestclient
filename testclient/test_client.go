@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	. "github.com/fish-tennis/gnet"
-	"github.com/fish-tennis/gtestclient/logger"
+	"log/slog"
 	"sync"
 )
 
@@ -59,7 +59,7 @@ func (t *TestClient) Init(ctx context.Context, useGate bool, useWebsocket bool, 
 			return
 		}
 		_testClient.removeMockClient(accountName)
-		logger.Debug("client disconnect %v", accountName)
+		slog.Debug("client disconnect", "accountName", accountName)
 	})
 
 	for i := 0; i < t.mockClientNum; i++ {

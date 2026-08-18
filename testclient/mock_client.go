@@ -4,9 +4,9 @@ import (
 	"crypto/md5"
 	"fmt"
 	. "github.com/fish-tennis/gnet"
-	"github.com/fish-tennis/gtestclient/logger"
 	"github.com/fish-tennis/gtestclient/pb"
 	"google.golang.org/protobuf/proto"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
@@ -64,7 +64,7 @@ func (c *MockClient) start() {
 		//defer func() {
 		//	_testClient.removeMockClient(c.accountName)
 		//	if err := recover(); err != nil {
-		//		logger.Error(err.(error).Error())
+		//		slog.Error(err.(error).Error())
 		//	}
 		//}()
 
@@ -77,27 +77,27 @@ func (c *MockClient) start() {
 			AccountName: c.accountName,
 			Password:    GetMd5Password(c.accountName),
 		})
-		logger.Debug("LoginReq %v", c.accountName)
+		slog.Debug("LoginReq", "accountName", c.accountName)
 	}()
 }
 
 func (c *MockClient) Send(message proto.Message, opts ...SendOption) bool {
 	clientCmd := GetCommandByProto(message)
 	if clientCmd <= 0 {
-		logger.Error("clientCmdNotFound messageName:%v", proto.MessageName(message))
+		slog.Error("clientCmdNotFound", "messageName", proto.MessageName(message))
 		return false
 	}
 	if c.conn.Send(PacketCommand(clientCmd), message) {
-		logger.Debug("Send %v messageName:%v", clientCmd, proto.MessageName(message))
+		slog.Debug("Send", "cmd", clientCmd, "messageName", proto.MessageName(message))
 		return true
 	} else {
-		logger.Error("SendError messageName:%v", proto.MessageName(message))
+		slog.Error("SendError", "messageName", proto.MessageName(message))
 		return false
 	}
 }
 
 func (c *MockClient) OnLoginRes(res *pb.LoginRes, errorCode int) {
-	logger.Debug("onLoginRes:%v err:%v", res, errorCode)
+	slog.Debug("onLoginRes", "res", res, "err", errorCode)
 	if errorCode == int(pb.ErrorCode_ErrorCode_NotReg) {
 		// 自动注册账号
 		c.Send(&pb.AccountReg{
@@ -113,7 +113,7 @@ func (c *MockClient) OnLoginRes(res *pb.LoginRes, errorCode int) {
 			// 账号登录成功后,连接游戏服
 			c.connectServer(res.GetGameServer().GetClientListenAddr())
 			if c.conn == nil {
-				logger.Error("%v connect game failed", c.accountName)
+				slog.Error("connect game failed", "accountName", c.accountName)
 				_testClient.removeMockClient(c.accountName)
 				return
 			}
@@ -129,7 +129,7 @@ func (c *MockClient) OnLoginRes(res *pb.LoginRes, errorCode int) {
 }
 
 func (c *MockClient) OnAccountRes(res *pb.AccountRes, errorCode int) {
-	logger.Debug("onAccountRes:%v err:%v", res, errorCode)
+	slog.Debug("onAccountRes", "res", res, "err", errorCode)
 	if errorCode == 0 {
 		c.Send(&pb.LoginReq{
 			AccountName: c.accountName,
@@ -139,7 +139,7 @@ func (c *MockClient) OnAccountRes(res *pb.AccountRes, errorCode int) {
 }
 
 func (c *MockClient) OnPlayerEntryGameRes(res *pb.PlayerEntryGameRes, errorCode int) {
-	logger.Debug("onPlayerEntryGameRes:%v", res)
+	slog.Debug("onPlayerEntryGameRes", "res", res)
 	if errorCode == 0 {
 		c.playerEntryGameRes = res
 		// 玩家登录游戏服成功,模拟一个交互消息
@@ -173,7 +173,7 @@ func (c *MockClient) OnPlayerEntryGameRes(res *pb.PlayerEntryGameRes, errorCode 
 }
 
 func (c *MockClient) OnCreatePlayerRes(res *pb.CreatePlayerRes, errorCode int) {
-	logger.Debug("onCreatePlayerRes:%v", res)
+	slog.Debug("onCreatePlayerRes", "res", res)
 	if errorCode == 0 {
 		c.Send(&pb.PlayerEntryGameReq{
 			AccountId:    c.loginRes.GetAccountId(),
@@ -184,44 +184,44 @@ func (c *MockClient) OnCreatePlayerRes(res *pb.CreatePlayerRes, errorCode int) {
 }
 
 func (c *MockClient) OnErrorRes(res *pb.ErrorRes) {
-	logger.Debug("OnErrorRes cmd:%v id:%v str:%v", res.Command, res.ResultId, res.ResultStr)
+	slog.Debug("OnErrorRes", "cmd", res.Command, "id", res.ResultId, "str", res.ResultStr)
 }
 
 func (c *MockClient) OnGateRouteClientPacketError(res *pb.GateRouteClientPacketError) {
-	logger.Debug("OnGateRouteClientPacketError id:%v str:%v", res.ResultId, res.ResultStr)
+	slog.Debug("OnGateRouteClientPacketError", "id", res.ResultId, "str", res.ResultStr)
 	c.conn.Close()
 }
 
 func (c *MockClient) OnBaseInfoSync(res *pb.BaseInfoSync) {
-	logger.Debug("OnBaseInfoSync:%v", res)
+	slog.Debug("OnBaseInfoSync", "res", res)
 }
 
 func (c *MockClient) OnBagsSync(res *pb.BagsSync) {
-	logger.Debug("OnBagsSync:%v", res)
+	slog.Debug("OnBagsSync", "res", res)
 }
 
 func (c *MockClient) OnItemUseRes(res *pb.ItemUseRes) {
-	logger.Debug("OnItemUseRes:%v", res)
+	slog.Debug("OnItemUseRes", "res", res)
 }
 
 func (c *MockClient) OnElemContainerUpdate(res *pb.ElemContainerUpdate) {
-	logger.Debug("OnElemContainerUpdate:%v", res)
+	slog.Debug("OnElemContainerUpdate", "res", res)
 }
 
 func (c *MockClient) OnQuestSync(res *pb.QuestSync) {
-	logger.Debug("OnQuestSync:%v", res)
+	slog.Debug("OnQuestSync", "res", res)
 }
 
 func (c *MockClient) OnQuestUpdate(res *pb.QuestUpdate) {
-	logger.Debug("OnQuestUpdate:%v", res)
+	slog.Debug("OnQuestUpdate", "res", res)
 }
 
 func (c *MockClient) OnFinishQuestRes(res *pb.FinishQuestRes) {
-	logger.Debug("OnFinishQuestRes:%v", res)
+	slog.Debug("OnFinishQuestRes", "res", res)
 }
 
 func (c *MockClient) OnGuildSync(res *pb.GuildSync) {
-	logger.Debug("OnGuildSync:%v", res)
+	slog.Debug("OnGuildSync", "res", res)
 	if res.Data.GuildId > 0 {
 		// 已有公会 获取公会数据
 		c.Send(&pb.GuildDataViewReq{})
@@ -229,11 +229,11 @@ func (c *MockClient) OnGuildSync(res *pb.GuildSync) {
 }
 
 func (c *MockClient) OnGuildCreateRes(res *pb.GuildCreateRes) {
-	logger.Debug("OnGuildCreateRes:%v", res)
+	slog.Debug("OnGuildCreateRes", "res", res)
 }
 
 func (c *MockClient) OnGuildListRes(res *pb.GuildListRes) {
-	logger.Debug("OnGuildListRes:%v", res)
+	slog.Debug("OnGuildListRes", "res", res)
 	//if len(res.GuildInfos) > 0 {
 	//	if c.playerEntryGameRes.GuildData.GuildId == 0 {
 	//		// 申请加入公会
@@ -252,11 +252,11 @@ func (c *MockClient) OnGuildListRes(res *pb.GuildListRes) {
 }
 
 func (c *MockClient) OnGuildJoinRes(res *pb.GuildJoinRes) {
-	logger.Debug("OnGuildJoinRes:%v", res)
+	slog.Debug("OnGuildJoinRes", "res", res)
 }
 
 func (c *MockClient) OnGuildJoinReqTip(res *pb.GuildJoinReqTip) {
-	logger.Debug("OnGuildJoinReqTip:%v", res)
+	slog.Debug("OnGuildJoinReqTip", "res", res)
 	// 同意入会请求
 	c.Send(&pb.GuildJoinAgreeReq{
 		JoinPlayerId: res.PlayerId,
@@ -265,7 +265,7 @@ func (c *MockClient) OnGuildJoinReqTip(res *pb.GuildJoinReqTip) {
 }
 
 func (c *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
-	logger.Debug("OnGuildDataViewRes:%v", res)
+	slog.Debug("OnGuildDataViewRes", "res", res)
 	for _, v := range res.GuildData.JoinRequests {
 		// 同意入会请求
 		c.Send(&pb.GuildJoinAgreeReq{
@@ -276,27 +276,27 @@ func (c *MockClient) OnGuildDataViewRes(res *pb.GuildDataViewRes) {
 }
 
 func (c *MockClient) OnGuildJoinAgreeRes(res *pb.GuildJoinAgreeRes) {
-	logger.Debug("OnGuildJoinAgreeRes:%v", res)
+	slog.Debug("OnGuildJoinAgreeRes", "res", res)
 }
 
 func (c *MockClient) OnGuildJoinReqOpResult(res *pb.GuildJoinReqOpResult) {
-	logger.Debug("OnGuildJoinReqOpResult:%v", res)
+	slog.Debug("OnGuildJoinReqOpResult", "res", res)
 }
 
 func (c *MockClient) OnActivitySync(res *pb.ActivitySync) {
-	logger.Debug("OnActivitySync:%v", res)
+	slog.Debug("OnActivitySync", "res", res)
 }
 
 func (c *MockClient) OnExchangeSync(res *pb.ExchangeSync) {
-	logger.Debug("OnExchangeSync:%v", res)
+	slog.Debug("OnExchangeSync", "res", res)
 }
 
 func (c *MockClient) OnExchangeUpdate(res *pb.ExchangeUpdate) {
-	logger.Debug("OnExchangeUpdate:%v", res)
+	slog.Debug("OnExchangeUpdate", "res", res)
 }
 
 func (c *MockClient) OnExchangeRes(res *pb.ExchangeRes) {
-	logger.Debug("OnExchangeRes:%v", res)
+	slog.Debug("OnExchangeRes", "res", res)
 }
 
 // 测试命令
@@ -319,7 +319,7 @@ func (c *MockClient) OnInputCmd(cmd string) {
 			return
 		} else if cmdArgs[0] == "join" {
 			if len(cmdArgs) != 2 {
-				logger.Error("usage: guild join guildId")
+				slog.Error("usage: guild join guildId")
 				return
 			}
 			guildId, _ := strconv.ParseInt(cmdArgs[1], 10, 64)

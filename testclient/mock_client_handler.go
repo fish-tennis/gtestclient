@@ -3,7 +3,6 @@ package testclient
 import (
 	"fmt"
 	. "github.com/fish-tennis/gnet"
-	"github.com/fish-tennis/gtestclient/logger"
 	"github.com/fish-tennis/gtestclient/pb"
 	"google.golang.org/protobuf/proto"
 	"log/slog"
@@ -37,7 +36,7 @@ func NewMockClientHandler(protoCodec Codec) *MockClientHandler {
 		if packet.Message() != nil {
 			messageName = string(packet.Message().ProtoReflect().Descriptor().Name())
 		}
-		logger.Debug("un register %v(%v)", messageName, cmd)
+		slog.Debug("un register", "messageName", messageName, "cmd", cmd)
 	})
 	return handler
 }
@@ -102,7 +101,7 @@ func (h *MockClientHandler) autoRegister() {
 		messageName := protoArg.String()[strings.LastIndex(protoArg.String(), ".")+1:]
 		// 函数名必须是onLoginRes
 		if method.Name != fmt.Sprintf("On%v", messageName) {
-			logger.Debug("methodName not match:%v", method.Name)
+			slog.Debug("methodName not match", "method", method.Name)
 			continue
 		}
 
@@ -116,6 +115,6 @@ func (h *MockClientHandler) autoRegister() {
 		h.methods[cmd] = method
 		// 注册消息的构造函数
 		h.DefaultConnectionHandler.Register(cmd, nil, reflect.New(protoArg.Elem()).Interface().(proto.Message))
-		logger.Debug("register %v %v hasErrorCode:%v", messageId, method.Name, method.Type.NumIn() == 3)
+		slog.Debug("register", "cmd", messageId, "method", method.Name, "hasErrorCode", method.Type.NumIn() == 3)
 	}
 }

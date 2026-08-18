@@ -6,8 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"github.com/fish-tennis/gnet"
-	"github.com/fish-tennis/gtestclient/logger"
 	"github.com/fish-tennis/gtestclient/testclient"
+	"log/slog"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -42,8 +42,8 @@ func main() {
 	flag.BoolVar(&useWebSocket, "ws", false, "use WebSocket mode")
 	flag.BoolVar(&isDaemon, "d", false, "daemon mode")
 	flag.Parse()
-	logger.Info("server:%v useGate:%v useWebSocket:%v num:%v prefix:%v beginId:%v isDaemon:%v", serverAddr,
-		useGate, useWebSocket, mockClientNum, mockClientAccountPrefix, mockClientBeginId, isDaemon)
+	slog.Info("args", "server", serverAddr, "useGate", useGate, "useWebSocket", useWebSocket,
+		"num", mockClientNum, "prefix", mockClientAccountPrefix, "beginId", mockClientBeginId, "isDaemon", isDaemon)
 	if useWebSocket && !useGate {
 		panic("WebSocket is only support by gate mode for now")
 	}
@@ -54,7 +54,7 @@ func main() {
 	}
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	gnet.SetLogLevel(gnet.DebugLevel)
+	initLog()
 	rand.Seed(time.Now().UnixNano())
 
 	testClient := new(testclient.TestClient)
@@ -79,9 +79,9 @@ func main() {
 				lineBytes, _, _ := consoleReader.ReadLine()
 				line := string(lineBytes)
 				lineLower := strings.ToLower(string(lineBytes))
-				logger.Info("line:%v", line)
+				slog.Info("line", "line", line)
 				if lineLower == "close" || lineLower == "exit" {
-					logger.Info("kill by console input")
+					slog.Info("kill by console input")
 					// 模拟一个kill信号,以方便退出流程
 					signalKillNotify <- os.Kill
 					return
@@ -92,10 +92,10 @@ func main() {
 		}()
 	}
 	// 阻塞等待系统关闭信号
-	logger.Info("wait for kill signal")
+	slog.Info("wait for kill signal")
 	select {
 	case <-signalKillNotify:
-		logger.Info("signalKillNotify, cancel ctx")
+		slog.Info("signalKillNotify, cancel ctx")
 		// 通知所有协程关闭,所有监听<-ctx.Done()的地方会收到通知
 		cancel()
 		break
@@ -116,4 +116,13 @@ func daemon() {
 	cmd.Start()
 	fmt.Println("[PID]", cmd.Process.Pid)
 	os.Exit(0)
+}
+
+func initLog() {
+	// 测试客户端直接输出到控制台,使用Debug级别
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})))
+	// 让 gnet 使用配置好的 slog.Default()
+	gnet.SetLogger(slog.Default())
 }
